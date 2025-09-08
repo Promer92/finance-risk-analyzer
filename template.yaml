@@ -1,0 +1,203 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Financial Transaction Risk Analyzer (Serverless + ML-ready)
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 15
+    MemorySize: 256
+    Architectures: [x86_64]
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: finance-risk
+  HomeCountry:
+    Type: String
+    Default: AU
+  HighAmountThreshold:
+    Type: Number
+    Default: 1000
+  ForeignAmountThreshold:
+    Type: Number
+    Default: 500
+  HighRiskThreshold:
+    Type: Number
+    Default: 0.85
+
+Resources:
+  DataLakeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-${AWS::AccountId}-${AWS::Region}-datalake'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  SuspiciousTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-suspicious'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: txn_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: txn_id, KeyType: HASH }
+      SSESpecification: { SSEEnabled: true }
+
+  UserStateTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-userstate'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: user_id, AttributeType: S }
+      KeySchema:
+        - { AttributeName: user_id, KeyType: HASH }
+      SSESpecification: { SSEEnabled: true }
+
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${ProjectName}-alerts'
+
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors: "'*'"
+
+  IngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-ingest'
+      Handler: src/ingest/handler.lambda_handler
+      CodeUri: .
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataLakeBucket
+          SUSPICIOUS_TABLE: !Ref SuspiciousTable
+          USERSTATE_TABLE: !Ref UserStateTable
+          ALERTS_TOPIC_ARN: !Ref AlertsTopic
+          HOME_COUNTRY: !Ref HomeCountry
+          HIGH_AMOUNT: !Ref HighAmountThreshold
+          FOREIGN_AMOUNT: !Ref ForeignAmountThreshold
+          HIGH_RISK_THRESHOLD: !Ref HighRiskThreshold
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref DataLakeBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SuspiciousTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserStateTable
+        - Statement:
+            - Effect: Allow
+              Action: sns:Publish
+              Resource: !Ref AlertsTopic
+      Events:
+        IngestApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /ingest
+            Method: POST
+
+  AggregatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-aggregate'
+      Handler: src/batch/aggregate.lambda_handler
+      CodeUri: .
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref DataLakeBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref DataLakeBucket
+        - S3WritePolicy:
+            BucketName: !Ref DataLakeBucket
+
+  AggregatorRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(1 hour)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt AggregatorFunction.Arn
+          Id: AggregateTarget
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AggregatorFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AggregatorRule.Arn
+
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Sub '${ProjectName}_db'
+
+  GlueCrawlerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: glue.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole
+      Policies:
+        - PolicyName: GlueS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['s3:GetObject','s3:ListBucket']
+                Resource:
+                  - !Sub 'arn:aws:s3:::${DataLakeBucket}'
+                  - !Sub 'arn:aws:s3:::${DataLakeBucket}/*'
+
+  GlueCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: !Sub '${ProjectName}-crawler'
+      Role: !GetAtt GlueCrawlerRole.Arn
+      DatabaseName: !Ref GlueDatabase
+      Targets:
+        S3Targets:
+          - Path: !Sub 's3://${DataLakeBucket}/transactions/raw/'
+      Schedule:
+        ScheduleExpression: 'cron(0 * * * ? *)'
+      SchemaChangePolicy:
+        UpdateBehavior: UPDATE_IN_DATABASE
+        DeleteBehavior: DEPRECATE_IN_DATABASE
+
+Outputs:
+  ApiUrl:
+    Description: Invoke URL for POST /ingest
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/ingest'
+  AlertsTopicArn:
+    Description: SNS topic ARN for alerts
+    Value: !Ref AlertsTopic
+  DataLakeBucketName:
+    Description: S3 bucket for data lake
+    Value: !Ref DataLakeBucket
+  GlueDatabaseName:
+    Description: Glue database name
+    Value: !Sub '${ProjectName}_db'

@@ -1,0 +1,11 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "finance-risk"
+resolve_s3 = true
+s3_prefix = "finance-risk"
+region = "ap-southeast-2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "ProjectName=\"finance-risk\" HomeCountry=\"AU\" HighAmountThreshold=\"1000\" ForeignAmountThreshold=\"500\" HighRiskThreshold=\"0.85\""
+image_repositories = []
