@@ -19,7 +19,7 @@ aws sts get-caller-identity
 ### 2) Clone the repo
 
 ```bash
-git clone https://github.com/<your-username>/finance-risk-analyzer.git
+git clone https://github.com/AkshataPalankar/finance-risk-analyzer.git
 cd finance-risk-analyzer
 ```
 
@@ -81,6 +81,7 @@ aws dynamodb scan --table-name finance-risk-suspicious --max-items 5          # 
 ### 7) Analytics (Glue + Athena)
 ```bash
 aws glue start-crawler --name finance-risk-crawler
+aws glue wait crawler-ready --name finance-risk-crawler
 ```
 
 In Athena (same region):
@@ -112,10 +113,27 @@ sam local start-api   # -> http://127.0.0.1:3000/ingest
 
 ### 10) Clean up (avoid charges)
 ```bash 
-aws s3 rm "s3://$BUCKET" --recursive
-sam delete --stack-name finance-risk
+# (Assumes $BUCKET is already set; otherwise fetch it from stack outputs)
+# 1) Delete all object versions
+aws s3api list-object-versions --bucket "$BUCKET" \
+  --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output json \
+| aws s3api delete-objects --bucket "$BUCKET" --delete file:///dev/stdin || true
+
+# 2) Delete all delete markers
+aws s3api list-object-versions --bucket "$BUCKET" \
+  --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output json \
+| aws s3api delete-objects --bucket "$BUCKET" --delete file:///dev/stdin || true
+
+# 3) (Optional) Sweep any remaining current objects
+aws s3 rm "s3://$BUCKET" --recursive || true
+
+# 4) Delete the stack
+sam delete --stack-name finance-risk  # add --region ap-southeast-2 if your default isn't set
+
+# 5) Optional: clean up log groups
 aws logs delete-log-group --log-group-name /aws/lambda/finance-risk-ingest 2>/dev/null || true
 aws logs delete-log-group --log-group-name /aws/lambda/finance-risk-aggregate 2>/dev/null || true
+
 ```
 
 
