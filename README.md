@@ -4,7 +4,7 @@ Real-time pipeline that ingests card transactions, scores risk with explainable 
 
 ![Architecture – API Gateway → Lambda → S3/DynamoDB/SNS → Glue/Athena](diagram/architecture.png)
 
-## 🧪 Run it yourself (step-by-step)
+## (step-by-step)
 
 ### 1) Prerequisites
 
